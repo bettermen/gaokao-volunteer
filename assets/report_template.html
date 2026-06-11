@@ -1,0 +1,157 @@
+<!--
+  report_template.html
+  高考志愿填报方案HTML报告模板
+  变量说明:
+    {{TITLE}} - 报告标题
+    {{SUBTITLE}} - 副标题（省份/科类/分数/位次）
+    {{GENERATED_TIME}} - 生成时间
+    {{SCORE_DELTA}} - 线差
+    {{BATCH_LINE}} - 批次线
+    {{RANK_PERCENTILE}} - 位次百分比
+    {{TOTAL_VOLUNTEERS}} - 总志愿数
+    {{TOTAL_COUNT}} - 匹配院校数
+    {{DISTRIBUTION_BAR}} - 冲稳保分布条
+    {{REACH_TABLE}} - 冲刺志愿表
+    {{REACH_COUNT}} - 冲刺数量
+    {{MATCH_TABLE}} - 稳妥志愿表
+    {{MATCH_COUNT}} - 稳妥数量
+    {{SAFETY_TABLE}} - 保底志愿表
+    {{SAFETY_COUNT}} - 保底数量
+    {{RULE_MODEL}} - 填报模式
+    {{RULE_PARALLEL}} - 平行志愿
+    {{RULE_ADJUST}} - 专业调剂
+    {{STRATEGY_HINT}} - 填报策略提示
+    {{WARNINGS}} - 风险警告
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --reach: #e74c3c;
+    --match: #f39c12;
+    --safety: #27ae60;
+    --bg: #f8f9fa;
+    --card: #fff;
+    --text: #2c3e50;
+    --muted: #7f8c8d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  .header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; padding: 30px 40px; border-radius: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 28px; margin-bottom: 8px; }
+  .header .subtitle { font-size: 16px; opacity: 0.85; }
+  .header .meta { font-size: 13px; opacity: 0.6; margin-top: 8px; }
+  .card { background: var(--card); border-radius: 10px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 20px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #eee; }
+  .score-overview { display: flex; gap: 24px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 140px; text-align: center; padding: 16px; background: #f0f4ff; border-radius: 8px; }
+  .stat .value { font-size: 28px; font-weight: 700; color: #1a56db; }
+  .stat .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .distribution-bar { display: flex; height: 40px; border-radius: 8px; overflow: hidden; margin: 16px 0; }
+  .bar-segment { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600; }
+  .bar-reach { background: var(--reach); }
+  .bar-match { background: var(--match); }
+  .bar-safety { background: var(--safety); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; white-space: nowrap; }
+  td { padding: 10px 8px; border-bottom: 1px solid #eee; }
+  tr:hover { background: #f8fafc; }
+  .risk-冲 { border-left: 3px solid var(--reach); }
+  .risk-稳 { border-left: 3px solid var(--match); }
+  .risk-保 { border-left: 3px solid var(--safety); }
+  .col-rank { width: 40px; text-align: center; font-weight: 600; }
+  .col-school { width: 150px; font-weight: 600; }
+  .col-group { width: 130px; }
+  .col-majors { max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
+  .col-hist { width: 70px; text-align: center; }
+  .col-prob { width: 80px; text-align: center; font-weight: 600; }
+  .col-risk { width: 70px; text-align: center; font-weight: 600; }
+  .col-note { width: 100px; color: var(--muted); font-size: 12px; }
+  .prob-high { color: var(--safety); }
+  .prob-mid { color: var(--match); }
+  .prob-low { color: var(--reach); }
+  .warnings { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px; }
+  .warnings h3 { color: #856404; margin-bottom: 8px; }
+  .warnings ul { margin-left: 20px; }
+  .warnings li { margin-bottom: 4px; color: #856404; }
+  .disclaimer { background: #e2e8f0; border-radius: 8px; padding: 16px; font-size: 13px; color: var(--muted); margin-top: 20px; }
+  .rule-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .rule-item { padding: 12px; background: #f0f4ff; border-radius: 6px; }
+  .rule-item .key { font-size: 12px; color: var(--muted); }
+  .rule-item .val { font-size: 16px; font-weight: 600; }
+  @media print { body { background: #fff; } .card { box-shadow: none; break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>{{TITLE}}</h1>
+    <div class="subtitle">{{SUBTITLE}}</div>
+    <div class="meta">生成时间: {{GENERATED_TIME}} | AI辅助生成，仅供参考</div>
+  </div>
+
+  <div class="card">
+    <h2>📊 成绩定位</h2>
+    <div class="score-overview">
+      <div class="stat"><div class="value">{{SCORE_DELTA}}</div><div class="label">线差 (批次线 {{BATCH_LINE}}分)</div></div>
+      <div class="stat"><div class="value">{{RANK_PERCENTILE}}</div><div class="label">位次百分比</div></div>
+      <div class="stat"><div class="value">{{TOTAL_COUNT}}</div><div class="label">匹配院校数</div></div>
+      <div class="stat"><div class="value">{{TOTAL_VOLUNTEERS}}</div><div class="label">总志愿数</div></div>
+    </div>
+    {{DISTRIBUTION_BAR}}
+  </div>
+
+  <div class="card">
+    <h2>📋 本省填报规则</h2>
+    <div class="rule-info">
+      <div class="rule-item"><div class="key">填报模式</div><div class="val">{{RULE_MODEL}}</div></div>
+      <div class="rule-item"><div class="key">平行志愿</div><div class="val">{{RULE_PARALLEL}}</div></div>
+      <div class="rule-item"><div class="key">专业调剂</div><div class="val">{{RULE_ADJUST}}</div></div>
+    </div>
+    <p style="margin-top:12px; font-size:14px; color:var(--muted);">💡 {{STRATEGY_HINT}}</p>
+  </div>
+
+  <div class="card">
+    <h2>🚀 冲刺志愿 ({{REACH_COUNT}}个 | 录取概率 30-50%)</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">录取概率较低，可能有"捡漏"机会，不建议超过总志愿数的20%</p>
+    <table>
+      <thead><tr><th>#</th><th>院校</th><th>专业组</th><th>包含专业</th><th>最低位次</th><th>录取概率</th><th>风险</th><th>备注</th></tr></thead>
+      <tbody>{{REACH_TABLE}}</tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>✅ 稳妥志愿 ({{MATCH_COUNT}}个 | 录取概率 50-80%)</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">正常发挥大概率录取的主力志愿，应占总量40-50%</p>
+    <table>
+      <thead><tr><th>#</th><th>院校</th><th>专业组</th><th>包含专业</th><th>最低位次</th><th>录取概率</th><th>风险</th><th>备注</th></tr></thead>
+      <tbody>{{MATCH_TABLE}}</tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>🛡️ 保底志愿 ({{SAFETY_COUNT}}个 | 录取概率 >80%)</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">确保有学上的底线，应占30-40%，防止滑档</p>
+    <table>
+      <thead><tr><th>#</th><th>院校</th><th>专业组</th><th>包含专业</th><th>最低位次</th><th>录取概率</th><th>风险</th><th>备注</th></tr></thead>
+      <tbody>{{SAFETY_TABLE}}</tbody>
+    </table>
+  </div>
+
+  <div class="warnings">
+    <h3>⚠️ 风险提示与建议</h3>
+    <ul>{{WARNINGS}}</ul>
+  </div>
+
+  <div class="disclaimer">
+    <strong>免责声明：</strong>本报告由AI辅助生成，数据基于公开信息和历史录取趋势分析，可能存在滞后或误差。
+    志愿填报具有重大人生影响，请务必：1. 去各省教育考试院官网核实当年招生计划和投档线；2. 结合个人兴趣、职业规划、家庭条件等综合决策；3. 最终填报方案的决策权与责任在考生本人。
+  </div>
+</div>
+</body>
+</html>
